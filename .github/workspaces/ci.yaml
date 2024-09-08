@@ -33,7 +33,7 @@ jobs:
       run: cargo check --all --release
 
     - name: clippy
-      run: cargo check --all-targets --release
+      run: cargo clippy --all-targets --release
 
     - name: doc
       run: cargo doc --workspace --all-features --no-deps
@@ -41,4 +41,3 @@ jobs:
     - name: test
       run: cargo test --release --all-targets
       shell: bash
-
