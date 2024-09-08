@@ -11,9 +11,7 @@ use core::{
 };
 use std::ops::{Deref, DerefMut};
 use std::ptr::NonNull;
-
-use libc::{PROT_EXEC, PROT_NONE, PROT_READ, PROT_WRITE};
-use memsec::{mlock, mprotect, munlock};
+use memsec::{mlock, mprotect, munlock, Prot};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 pub use zeroize;
 
@@ -42,7 +40,7 @@ impl<S: Zeroize> Drop for SecretBox<S> {
 
             if !mprotect(
                 NonNull::new(secret_ptr as *mut S).expect("Unable to convert ptr to NonNull"),
-                PROT_READ | PROT_WRITE | PROT_EXEC,
+                Prot::ReadWriteExec,
             ) {
                 panic!("Unable to unprotect variable")
             }
@@ -74,7 +72,7 @@ impl<S: Zeroize> SecretBox<S> {
 
             if !mprotect(
                 NonNull::new(secret_ptr).expect("Unable to convert box to NonNull"),
-                PROT_NONE,
+                Prot::NoAccess,
             ) {
                 panic!("Unable to mprotect secret")
             }
@@ -230,7 +228,7 @@ impl<'a, S: Zeroize> Drop for SecretGuard<'a, S> {
             unsafe {
                 if !mprotect(
                     NonNull::new(secret_ptr as *mut S).expect("Unable to convert ptr to NonNull"),
-                    PROT_NONE,
+                    Prot::NoAccess,
                 ) {
                     panic!("Unable to mprotect memory")
                 }
@@ -247,7 +245,7 @@ impl<'a, S: Zeroize> Drop for SecretGuardMut<'a, S> {
             unsafe {
                 if !mprotect(
                     NonNull::new(secret_ptr as *mut S).expect("Unable to convert ptr to NonNull"),
-                    PROT_NONE,
+                    Prot::NoAccess,
                 ) {
                     panic!("Unable to mprotect memory")
                 }
@@ -270,7 +268,6 @@ pub trait ExposeSecret<S: Zeroize> {
 
 #[cfg(test)]
 mod tests {
-    use libc::PROT_EXEC;
     use super::*;
 
     #[derive(Debug, Clone, Default)]
@@ -348,10 +345,14 @@ mod tests {
         let a = 2;
         let ptr = &a as *const i32;
         unsafe {
-            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), PROT_NONE));
-            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), PROT_READ));
-            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), PROT_EXEC));
-            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), PROT_READ | PROT_WRITE | PROT_EXEC));
+            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::NoAccess));
+            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::ReadOnly));
+            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::WriteOnly));
+            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::ReadWrite));
+            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::ReadExec));
+            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::WriteExec));
+            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::Execute));
+            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::ReadWriteExec));
         }
     }
 }
