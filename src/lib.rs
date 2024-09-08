@@ -10,6 +10,7 @@ use core::{
 };
 use memsec::{mlock, munlock};
 use std::ops::{Deref, DerefMut};
+use std::mem::size_of_val;
 pub use zeroize;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -26,7 +27,7 @@ impl<S: Zeroize> Zeroize for SecretBox<S> {
 
 impl<S: Zeroize> Drop for SecretBox<S> {
     fn drop(&mut self) {
-        let len = std::mem::size_of_val(&*self.inner_secret);
+        let len = size_of_val(&*self.inner_secret);
 
         let secret_ptr = self.inner_secret.as_ref() as *const S;
 
@@ -51,7 +52,7 @@ impl<S: Zeroize> From<Box<S>> for SecretBox<S> {
 impl<S: Zeroize> SecretBox<S> {
     /// Create a secret value using a pre-boxed value.
     pub fn new(boxed_secret: Box<S>) -> Self {
-        let len = std::mem::size_of_val(&*boxed_secret);
+        let len = size_of_val(&*boxed_secret);
 
         let secret_ptr = Box::into_raw(boxed_secret);
 
