@@ -46,6 +46,9 @@ impl<S: Zeroize> Drop for SecretBox<S> {
         {
             let page_size = unsafe { sysconf(_SC_PAGESIZE) } as usize;
 
+            if page_size == -1 {
+                panic!("Error getting page size: \n{}", errno())
+            }
             // Align the address and size to the page boundary
             let start = (secret_ptr as usize) & !(page_size - 1);
             let end = ((secret_ptr as usize) + len + page_size - 1) & !(page_size - 1);
@@ -92,6 +95,9 @@ impl<S: Zeroize> SecretBox<S> {
         #[cfg(unix)]
         {
             let page_size = unsafe { sysconf(_SC_PAGESIZE) } as usize;
+            if page_size == -1 {
+                panic!("Error getting page size: \n{}", errno())
+            }
 
             // Align the address and size to the page boundary
             let start = (secret_ptr as usize) & !(page_size - 1);
