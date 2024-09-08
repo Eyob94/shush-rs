@@ -8,10 +8,21 @@ use core::{
     any,
     fmt::{self, Debug},
 };
-use errno::errno;
-use libc::{madvise, mlock, munlock, sysconf, MADV_DODUMP, MADV_DONTDUMP, _SC_PAGESIZE};
+use std::mem::size_of_val;
 use std::ops::{Deref, DerefMut};
-use std::{ffi::c_void, mem::size_of_val};
+
+#[cfg(unix)]
+use errno::errno;
+
+#[cfg(unix)]
+use std::ffi::c_void;
+
+#[cfg(unix)]
+use libc::{mlock, munlock, sysconf, _SC_PAGESIZE};
+
+#[cfg(target_os = "linux")]
+use libc::{madvise, MADV_DODUMP, MADV_DONTDUMP};
+
 pub use zeroize;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -55,6 +66,7 @@ impl<S: Zeroize> Drop for SecretBox<S> {
 
         #[cfg(windows)]
         unsafe {
+            #[cfg(feature = "Win32")]
             if windows_sys::Win32::System::Memory::VirtualUnlock(secret_ptr.cast(), len) == 0 {
                 panic!(
                     "VirtualUnlock failed: {:?}",
@@ -103,6 +115,7 @@ impl<S: Zeroize> SecretBox<S> {
 
         #[cfg(windows)]
         unsafe {
+            #[cfg(feature = "Win32")]
             if windows_sys::Win32::System::Memory::VirtualLock(secret_ptr.cast(), len) == 0 {
                 panic!(
                     "VirtualLock failed: {:?}",
