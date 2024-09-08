@@ -8,9 +8,21 @@ use core::{
     any,
     fmt::{self, Debug},
 };
-use memsec::{mlock, munlock};
-use std::ops::{Deref, DerefMut};
 use std::mem::size_of_val;
+use std::ops::{Deref, DerefMut};
+
+#[cfg(unix)]
+use errno::errno;
+
+#[cfg(unix)]
+use std::ffi::c_void;
+
+#[cfg(unix)]
+use libc::{mlock, munlock, sysconf, _SC_PAGESIZE};
+
+#[cfg(target_os = "linux")]
+use libc::{madvise, MADV_DODUMP, MADV_DONTDUMP};
+
 pub use zeroize;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -28,12 +40,33 @@ impl<S: Zeroize> Zeroize for SecretBox<S> {
 impl<S: Zeroize> Drop for SecretBox<S> {
     fn drop(&mut self) {
         let len = size_of_val(&*self.inner_secret);
-
         let secret_ptr = self.inner_secret.as_ref() as *const S;
 
+        #[cfg(unix)]
+        {
+            let page_size = unsafe { sysconf(_SC_PAGESIZE) } as usize;
+
+            // Align the address and size to the page boundary
+            let start = (secret_ptr as usize) & !(page_size - 1);
+            let end = ((secret_ptr as usize) + len + page_size - 1) & !(page_size - 1);
+            let aligned_len = end - start;
+
+            unsafe {
+                #[cfg(target_os = "linux")]
+                if madvise(start as *mut c_void, aligned_len, MADV_DODUMP) != 0 {
+                    panic!("madvise failed: \n{:?}", errno());
+                }
+
+                if munlock(start as *const c_void, aligned_len) != 0 {
+                    panic!("Unable to munlock variable: \n {:?} \n", errno())
+                }
+            }
+        }
+
+        #[cfg(windows)]
         unsafe {
-            if !munlock(secret_ptr as *mut u8, len) {
-                panic!("Unable to munlock variable")
+            if windows_sys::Win32::System::Memory::VirtualUnlock(secret_ptr.cast(), len) == 0 {
+                panic!("VirtualUnlock failed",);
             }
         }
 
@@ -56,12 +89,34 @@ impl<S: Zeroize> SecretBox<S> {
 
         let secret_ptr = Box::into_raw(boxed_secret);
 
-        unsafe {
-            if !mlock(secret_ptr as *mut u8, len) {
-                panic!("Unable to mlock variable ")
+        #[cfg(unix)]
+        {
+            let page_size = unsafe { sysconf(_SC_PAGESIZE) } as usize;
+
+            // Align the address and size to the page boundary
+            let start = (secret_ptr as usize) & !(page_size - 1);
+            let end = ((secret_ptr as usize) + len + page_size - 1) & !(page_size - 1);
+            let aligned_len = end - start;
+
+            unsafe {
+                #[cfg(target_os = "linux")]
+                if madvise(start as *mut c_void, aligned_len, MADV_DONTDUMP) != 0 {
+                    panic!("madvise failed: \n{:?}", errno());
+                }
+                if mlock(start as *const c_void, aligned_len) != 0 {
+                    panic!("mlock failed: \n{:?}", errno());
+                }
             }
         }
 
+        #[cfg(windows)]
+        unsafe {
+            if windows_sys::Win32::System::Memory::VirtualLock(secret_ptr.cast(), len) == 0 {
+                panic!("VirtualLock failed",);
+            }
+        }
+
+        // Recreate Box from raw pointer
         let inner_secret = unsafe { Box::from_raw(secret_ptr) };
 
         Self { inner_secret }
@@ -139,6 +194,7 @@ impl<S: Zeroize> ExposeSecret<S> for SecretBox<S> {
 }
 
 /// Secret Guard that holds a reference to the secret.
+#[derive(Debug)]
 pub struct SecretGuard<'a, S>
 where
     S: Zeroize,
@@ -158,6 +214,7 @@ where
 }
 
 /// Secret Guard that holds a mutable to reference to the secret.
+#[derive(Debug)]
 pub struct SecretGuardMut<'a, S>
 where
     S: Zeroize,
@@ -258,14 +315,15 @@ mod tests {
 
     #[test]
     fn test_secret_box_expose_secret_mut() {
-        let secret = Box::new(TestSecret::new(10));
+        let secret = Box::new(String::from("Encrypted"));
         let mut secret_box = SecretBox::new(secret);
+
         {
             let mut exposed = secret_box.expose_secret_mut();
-            (*exposed).data[0] = 42;
+            (*exposed) = String::from("Encrypted 2");
         }
 
-        assert_eq!((*secret_box.expose_secret()).data[0], 42);
+        assert_eq!((*secret_box.expose_secret()), String::from("Encrypted 2"));
     }
 
     #[test]
