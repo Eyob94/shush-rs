@@ -304,7 +304,7 @@ mod tests {
     fn test_secret_box_drop_zeroizes() {
         let secret = Box::new(TestSecret::new(10));
         let mut secret_box = SecretBox::new(secret);
-        assert!((& *secret_box.expose_secret()).check_non_zero());
+        assert!((*secret_box.expose_secret()).check_non_zero());
 
         drop(secret_box);
 
@@ -320,16 +320,16 @@ mod tests {
         let mut secret_box = SecretBox::new(secret);
         {
             let mut exposed = secret_box.expose_secret_mut();
-            (&mut *exposed).data[0] = 42;
+            (*exposed).data[0] = 42;
         }
 
-        assert_eq!((& *secret_box.expose_secret()).data[0], 42);
+        assert_eq!((*secret_box.expose_secret()).data[0], 42);
     }
 
     #[test]
     fn test_secret_box_new_with_ctr() {
         let mut secret_box = SecretBox::new_with_ctr(|| TestSecret::new(10));
-        assert!((& *secret_box.expose_secret()).check_non_zero());
+        assert!((*secret_box.expose_secret()).check_non_zero());
     }
 
     #[test]
@@ -338,7 +338,7 @@ mod tests {
             SecretBox::try_new_with_ctr(|| Ok(TestSecret::new(10)));
 
         match result {
-            Ok(mut secret_box) => assert!((& *secret_box.expose_secret()).check_non_zero()),
+            Ok(mut secret_box) => assert!((*secret_box.expose_secret()).check_non_zero()),
             Err(_) => panic!("Expected Ok variant"),
         }
     }
