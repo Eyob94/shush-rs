@@ -1,12 +1,12 @@
 cargo-features = ["profile-rustflags"]
 
 [package]
-name = "shush"
+name = "shush-rs"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A Rust crate designed to manage sensitive data securely by leveraging memory protection mechanisms."
-repository = "https://github.com/Eyob94/shush"
+repository = "https://github.com/Eyob94/shush-rs"
 readme = "README.md"
 keywords = ["secret", "memory", "protection", "privacy"]
 categories = ["memory-management"]
