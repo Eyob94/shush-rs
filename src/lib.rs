@@ -1,6 +1,5 @@
 //! This is a fork of the [secrets](https://github.com/stouset/secrets) crate.
-//! This crate adds `mlock` and `mprotect` to lock the secret's page in memory
-//! and read only when exposed
+//! This crate adds `mlock`  to lock the secret's page in memory
 
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![warn(missing_docs, rust_2018_idioms, unused_qualifications)]
@@ -9,16 +8,14 @@ use core::{
     any,
     fmt::{self, Debug},
 };
+use memsec::{mlock, munlock};
 use std::ops::{Deref, DerefMut};
-use std::ptr::NonNull;
-use memsec::{mlock, mprotect, munlock, Prot};
-use zeroize::{Zeroize, ZeroizeOnDrop};
 pub use zeroize;
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Wrapper for the inner secret. Can be exposed by [`ExposeSecret`]
 pub struct SecretBox<S: Zeroize> {
     inner_secret: Box<S>,
-    protected: bool,
 }
 
 impl<S: Zeroize> Zeroize for SecretBox<S> {
@@ -29,20 +26,13 @@ impl<S: Zeroize> Zeroize for SecretBox<S> {
 
 impl<S: Zeroize> Drop for SecretBox<S> {
     fn drop(&mut self) {
-        let len = size_of_val(&*self.inner_secret);
+        let len = std::mem::size_of_val(&*self.inner_secret);
 
         let secret_ptr = self.inner_secret.as_ref() as *const S;
 
         unsafe {
             if !munlock(secret_ptr as *mut u8, len) {
                 panic!("Unable to munlock variable")
-            }
-
-            if !mprotect(
-                NonNull::new(secret_ptr as *mut S).expect("Unable to convert ptr to NonNull"),
-                Prot::ReadWriteExec,
-            ) {
-                panic!("Unable to unprotect variable")
             }
         }
 
@@ -61,7 +51,7 @@ impl<S: Zeroize> From<Box<S>> for SecretBox<S> {
 impl<S: Zeroize> SecretBox<S> {
     /// Create a secret value using a pre-boxed value.
     pub fn new(boxed_secret: Box<S>) -> Self {
-        let len = size_of_val(&*boxed_secret);
+        let len = std::mem::size_of_val(&*boxed_secret);
 
         let secret_ptr = Box::into_raw(boxed_secret);
 
@@ -69,21 +59,11 @@ impl<S: Zeroize> SecretBox<S> {
             if !mlock(secret_ptr as *mut u8, len) {
                 panic!("Unable to mlock variable ")
             }
-
-            if !mprotect(
-                NonNull::new(secret_ptr).expect("Unable to convert box to NonNull"),
-                Prot::NoAccess,
-            ) {
-                panic!("Unable to mprotect secret")
-            }
         }
 
         let inner_secret = unsafe { Box::from_raw(secret_ptr) };
 
-        Self {
-            inner_secret,
-            protected: true,
-        }
+        Self { inner_secret }
     }
 }
 
@@ -149,11 +129,11 @@ where
 
 impl<S: Zeroize> ExposeSecret<S> for SecretBox<S> {
     fn expose_secret(&mut self) -> SecretGuard<'_, S> {
-        SecretGuard::new(&self.inner_secret, &mut self.protected)
+        SecretGuard::new(&self.inner_secret)
     }
 
     fn expose_secret_mut(&mut self) -> SecretGuardMut<'_, S> {
-        SecretGuardMut::new(&mut self.inner_secret, &mut self.protected)
+        SecretGuardMut::new(&mut self.inner_secret)
     }
 }
 
@@ -163,7 +143,6 @@ where
     S: Zeroize,
 {
     data: &'a S,
-    protected: &'a mut bool,
 }
 
 impl<S> Deref for SecretGuard<'_, S>
@@ -183,7 +162,6 @@ where
     S: Zeroize,
 {
     data: &'a mut S,
-    protected: &'a mut bool,
 }
 
 impl<S> Deref for SecretGuardMut<'_, S>
@@ -208,49 +186,15 @@ where
 
 impl<'a, S: Zeroize> SecretGuard<'a, S> {
     /// Create a new SecretGuard instance.
-    pub fn new(data: &'a S, protected: &'a mut bool) -> Self {
-        Self { data, protected }
+    pub fn new(data: &'a S) -> Self {
+        Self { data }
     }
 }
 
 impl<'a, S: Zeroize> SecretGuardMut<'a, S> {
     /// Create a new SecretGuard instance.
-    pub fn new(data: &'a mut S, protected: &'a mut bool) -> Self {
-        Self { data, protected }
-    }
-}
-
-impl<'a, S: Zeroize> Drop for SecretGuard<'a, S> {
-    fn drop(&mut self) {
-        let secret_ptr = self.data as *const S;
-
-        if !*self.protected {
-            unsafe {
-                if !mprotect(
-                    NonNull::new(secret_ptr as *mut S).expect("Unable to convert ptr to NonNull"),
-                    Prot::NoAccess,
-                ) {
-                    panic!("Unable to mprotect memory")
-                }
-            }
-        }
-    }
-}
-
-impl<'a, S: Zeroize> Drop for SecretGuardMut<'a, S> {
-    fn drop(&mut self) {
-        let secret_ptr = self.data as *const S;
-
-        if !*self.protected {
-            unsafe {
-                if !mprotect(
-                    NonNull::new(secret_ptr as *mut S).expect("Unable to convert ptr to NonNull"),
-                    Prot::NoAccess,
-                ) {
-                    panic!("Unable to mprotect memory")
-                }
-            }
-        }
+    pub fn new(data: &'a mut S) -> Self {
+        Self { data }
     }
 }
 
@@ -337,22 +281,6 @@ mod tests {
         match result {
             Ok(mut secret_box) => assert!((*secret_box.expose_secret()).check_non_zero()),
             Err(_) => panic!("Expected Ok variant"),
-        }
-    }
-
-    #[test]
-    fn test_mprotect() {
-        let a = 2;
-        let ptr = &a as *const i32;
-        unsafe {
-            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::NoAccess));
-            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::ReadOnly));
-            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::WriteOnly));
-            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::ReadWrite));
-            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::ReadExec));
-            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::WriteExec));
-            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::Execute));
-            assert!(mprotect(NonNull::new(ptr as *mut i32).unwrap(), Prot::ReadWriteExec));
         }
     }
 }
