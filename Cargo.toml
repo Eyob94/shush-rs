@@ -18,4 +18,4 @@ windows-sys = { version = "0.59.0", default-features = false, features = [
     "Win32_System_Diagnostics_Debug",
     "Win32_System",
     "Win32_System_Diagnostics_Debug_Extensions",
-], optional = true }
+] }
