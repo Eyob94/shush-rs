@@ -40,7 +40,6 @@ impl<S: Zeroize> Zeroize for SecretBox<S> {
 impl<S: Zeroize> Drop for SecretBox<S> {
     fn drop(&mut self) {
         let len = size_of_val(&*self.inner_secret);
-
         let secret_ptr = self.inner_secret.as_ref() as *const S;
 
         #[cfg(unix)]
@@ -66,12 +65,8 @@ impl<S: Zeroize> Drop for SecretBox<S> {
 
         #[cfg(windows)]
         unsafe {
-            #[cfg(feature = "Win32")]
             if windows_sys::Win32::System::Memory::VirtualUnlock(secret_ptr.cast(), len) == 0 {
-                panic!(
-                    "VirtualUnlock failed: {:?}",
-                    windows_sys::core::HRESULT_FROM_WIN32(windows_sys::core::GetLastError())
-                );
+                panic!("VirtualUnlock failed",);
             }
         }
 
@@ -91,6 +86,7 @@ impl<S: Zeroize> SecretBox<S> {
     /// Create a secret value using a pre-boxed value.
     pub fn new(boxed_secret: Box<S>) -> Self {
         let len = size_of_val(&*boxed_secret);
+
         let secret_ptr = Box::into_raw(boxed_secret);
 
         #[cfg(unix)]
@@ -115,12 +111,8 @@ impl<S: Zeroize> SecretBox<S> {
 
         #[cfg(windows)]
         unsafe {
-            #[cfg(feature = "Win32")]
             if windows_sys::Win32::System::Memory::VirtualLock(secret_ptr.cast(), len) == 0 {
-                panic!(
-                    "VirtualLock failed: {:?}",
-                    windows_sys::core::HRESULT_FROM_WIN32(windows_sys::core::GetLastError())
-                );
+                panic!("VirtualLock failed",);
             }
         }
 

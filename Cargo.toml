@@ -10,6 +10,12 @@ zeroize = "1.8.1"
 libc = "0.2.158"
 errno = "0.3.9"
 
-
 [target.'cfg(windows)'.dependencies]
-windows-sys = "0.59.0"
+windows-sys = { version = "0.59.0", default-features = false, features = [
+    "Win32_System_SystemInformation",
+    "Win32_System_Memory",
+    "Win32_Foundation",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System",
+    "Win32_System_Diagnostics_Debug_Extensions",
+], optional = true }
