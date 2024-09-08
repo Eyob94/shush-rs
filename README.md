@@ -1,6 +1,6 @@
-# shush
+# shush-rs
 
-A Rust crate designed to manage sensitive data securely by leveraging memory protection mechanisms. It extends the functionality of the [secrecy](https://crates.io/crates/secrecy) crate to provide enhanced security features using memory locking and protection techniques. Specifically, `shush` ensures that secrets are kept safe from unauthorized access and are properly zeroized when no longer needed.
+A Rust crate designed to manage sensitive data securely by leveraging memory protection mechanisms. It extends the functionality of the [secrecy](https://crates.io/crates/secrecy) crate to provide enhanced security features using memory locking and protection techniques. Specifically, `shush-rs` ensures that secrets are kept safe from unauthorized access and are properly zeroized when no longer needed.
 
 ### Brief overview
 
