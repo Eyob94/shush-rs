@@ -194,7 +194,7 @@ where
 }
 
 impl<S: Zeroize> ExposeSecret<S> for SecretBox<S> {
-    fn expose_secret(&mut self) -> SecretGuard<'_, S> {
+    fn expose_secret(&self) -> SecretGuard<'_, S> {
         SecretGuard::new(&self.inner_secret)
     }
 
@@ -274,7 +274,7 @@ impl CloneableSecret for String {}
 /// Create a SecretGuard that holds a reference to the secret
 pub trait ExposeSecret<S: Zeroize> {
     /// Expose secret as non-mutable.
-    fn expose_secret(&mut self) -> SecretGuard<'_, S>;
+    fn expose_secret(&self) -> SecretGuard<'_, S>;
 
     /// Expose secret as mutable.
     fn expose_secret_mut(&mut self) -> SecretGuardMut<'_, S>;
@@ -314,7 +314,7 @@ mod tests {
     #[test]
     fn test_secret_box_drop_zeroizes() {
         let secret = Box::new(TestSecret::new(10));
-        let mut secret_box = SecretBox::new(secret);
+        let secret_box = SecretBox::new(secret);
         assert!((*secret_box.expose_secret()).check_non_zero());
 
         drop(secret_box);
@@ -340,7 +340,7 @@ mod tests {
 
     #[test]
     fn test_secret_box_new_with_ctr() {
-        let mut secret_box = SecretBox::new_with_ctr(|| TestSecret::new(10));
+        let secret_box = SecretBox::new_with_ctr(|| TestSecret::new(10));
         assert!((*secret_box.expose_secret()).check_non_zero());
     }
 
@@ -350,7 +350,7 @@ mod tests {
             SecretBox::try_new_with_ctr(|| Ok(TestSecret::new(10)));
 
         match result {
-            Ok(mut secret_box) => assert!((*secret_box.expose_secret()).check_non_zero()),
+            Ok(secret_box) => assert!((*secret_box.expose_secret()).check_non_zero()),
             Err(_) => panic!("Expected Ok variant"),
         }
     }

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4 - 2024-09-11
+
+- [#9](https://github.com/Eyob94/shush-rs/pull/9) Mutable Reference
+  - Remove Mutable Reference for `expose_secret()`
+
 ## 0.1.3 - 2024-09-11
 
 - [#8](https://github.com/Eyob94/shush-rs/pull/8) Impl Trait
