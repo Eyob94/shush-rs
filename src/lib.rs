@@ -47,6 +47,9 @@ impl FromStr for SecretString {
     }
 }
 
+/// Convenient type alias for Secret Wrapped Vectors
+pub type SecretVec<T> = SecretBox<Vec<T>>;
+
 impl<S: Zeroize> Drop for SecretBox<S> {
     fn drop(&mut self) {
         let len = size_of_val(&*self.inner_secret);
