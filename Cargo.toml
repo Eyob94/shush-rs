@@ -1,8 +1,6 @@
-cargo-features = ["profile-rustflags"]
-
 [package]
 name = "shush-rs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A Rust crate designed to manage sensitive data securely by leveraging memory protection mechanisms."
@@ -29,7 +27,5 @@ windows-sys = { version = "0.59.0", default-features = false, features = [
     "Win32_System_Diagnostics_Debug_Extensions",
 ] }
 
-
 [profile.release]
 panic = "abort"
-rustflags = ["-Dwarnings"]
