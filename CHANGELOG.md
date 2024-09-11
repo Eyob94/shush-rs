@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5 - 2024-09-11
+- [#10](https://github.com/Eyob94/shush-rs/pull/9) FromStr
+    - Implement `FromStr` trait for SecretString
+    - Add public alias `SecretString` and `SecretVec`
+
 ## 0.1.4 - 2024-09-11
 
 - [#9](https://github.com/Eyob94/shush-rs/pull/9) Mutable Reference

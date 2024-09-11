@@ -8,8 +8,8 @@ use core::{
     any,
     fmt::{self, Debug},
 };
-use std::mem::size_of_val;
 use std::ops::{Deref, DerefMut};
+use std::{mem::size_of_val, str::FromStr};
 
 #[cfg(unix)]
 use errno::errno;
@@ -34,6 +34,16 @@ pub struct SecretBox<S: Zeroize> {
 impl<S: Zeroize> Zeroize for SecretBox<S> {
     fn zeroize(&mut self) {
         self.inner_secret.as_mut().zeroize()
+    }
+}
+
+/// Convenient type alias for Secret Wrapped Strings
+pub type SecretString = SecretBox<String>;
+
+impl FromStr for SecretString {
+    type Err = core::convert::Infallible;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(SecretBox::new(Box::new(s.to_string())))
     }
 }
 
