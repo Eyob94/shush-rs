@@ -204,7 +204,7 @@ impl<S: Zeroize> ExposeSecret<S> for SecretBox<S> {
 }
 
 /// Secret Guard that holds a reference to the secret.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct SecretGuard<'a, S>
 where
     S: Zeroize,
@@ -224,7 +224,7 @@ where
 }
 
 /// Secret Guard that holds a mutable to reference to the secret.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct SecretGuardMut<'a, S>
 where
     S: Zeroize,
@@ -351,5 +351,21 @@ mod tests {
             Ok(mut secret_box) => assert!((*secret_box.expose_secret()).check_non_zero()),
             Err(_) => panic!("Expected Ok variant"),
         }
+    }
+
+    #[test]
+    fn test_secret_guard_equality() {
+        let secret_guard_a = SecretGuard::new(&5);
+        let secret_guard_b = SecretGuard::new(&5);
+
+        assert!(secret_guard_a == secret_guard_b);
+
+        let mut val_a = 7;
+        let mut val_b = 5;
+
+        let secret_guard_mut_a = SecretGuardMut::new(&mut val_a);
+        let secret_guard_mut_b = SecretGuardMut::new(&mut val_b);
+
+        assert!(secret_guard_mut_a != secret_guard_mut_b)
     }
 }
