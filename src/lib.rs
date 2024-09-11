@@ -269,6 +269,8 @@ impl<'a, S: Zeroize> SecretGuardMut<'a, S> {
 /// Marker trait for secrets which are allowed to be cloned
 pub trait CloneableSecret: Clone + Zeroize {}
 
+impl CloneableSecret for String {}
+
 /// Create a SecretGuard that holds a reference to the secret
 pub trait ExposeSecret<S: Zeroize> {
     /// Expose secret as non-mutable.
