@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3 - 2024-09-11
+
+- [#8](https://github.com/Eyob94/shush-rs/pull/8) Impl Trait
+  - Implement CloneableSecret Trait for String
+
 ## 0.1.2 - 2024-09-11
 
 - [#7](https://github.com/Eyob94/shush-rs/pull/7) Add Changelog
