@@ -1,9 +1,14 @@
 # Changelog
 
+### 0.1.9 - 2024-09-13
+
+- [#13] (https://github.com/Eyob94/shush-rs/pull/11) Public interface
+  - Publicize `from_vec` for SecretVec
+
 ### 0.1.8 - 2024-09-13
 
 - [#12] (https://github.com/Eyob94/shush-rs/pull/11) SecretVec
-  - Implement `from_vec` for SecretGuard & SecretGuardMut
+  - Implement `from_vec` for SecretVec
 
 ### 0.1.7 - 2024-09-13
 
