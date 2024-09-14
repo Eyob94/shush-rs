@@ -8,7 +8,10 @@ use core::{
     any,
     fmt::{self, Debug},
 };
-use std::ops::{Deref, DerefMut};
+use std::{
+    fmt::Display,
+    ops::{Deref, DerefMut},
+};
 use std::{mem::size_of_val, str::FromStr};
 
 #[cfg(unix)]
@@ -24,7 +27,7 @@ use libc::{mlock, munlock, sysconf, _SC_PAGESIZE};
 use libc::{madvise, MADV_DODUMP, MADV_DONTDUMP};
 
 pub use zeroize;
-use zeroize::{Zeroize, ZeroizeOnDrop};
+pub use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Wrapper for the inner secret. Can be exposed by [`ExposeSecret`]
 pub struct SecretBox<S: Zeroize> {
@@ -225,6 +228,12 @@ where
     data: &'a S,
 }
 
+impl<S: Display + Zeroize> Display for SecretGuard<'_, S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.data)
+    }
+}
+
 impl<S> Deref for SecretGuard<'_, S>
 where
     S: Zeroize,
@@ -243,6 +252,12 @@ where
     S: Zeroize,
 {
     data: &'a mut S,
+}
+
+impl<S: Display + Zeroize> Display for SecretGuardMut<'_, S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.data)
+    }
 }
 
 impl<S> Deref for SecretGuardMut<'_, S>
