@@ -254,6 +254,12 @@ where
     data: &'a mut S,
 }
 
+impl<S: Display + Zeroize> Display for SecretGuardMut<'_, S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.data)
+    }
+}
+
 impl<S> Deref for SecretGuardMut<'_, S>
 where
     S: Zeroize,
