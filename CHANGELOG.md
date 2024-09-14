@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.1.8 - 2024-09-13
+
+- [#12] (https://github.com/Eyob94/shush-rs/pull/11) SecretVec
+  - Implement `from_vec` for SecretGuard & SecretGuardMut
+
 ### 0.1.7 - 2024-09-13
 
 - [#11] (https://github.com/Eyob94/shush-rs/pull/11) String
