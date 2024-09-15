@@ -55,7 +55,7 @@ pub type SecretVec<T> = SecretBox<Vec<T>>;
 
 impl<T: Zeroize> SecretVec<T> {
     /// Generate SecretVec from vec
-    pub fn from_vec(new_vec: Vec<T>) -> Self {
+    pub fn from(new_vec: Vec<T>) -> Self {
         SecretBox::new(Box::new(new_vec))
     }
 }
