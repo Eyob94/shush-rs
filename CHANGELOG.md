@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.1.10 - 2024-09-14
+
+- [#14] (https://github.com/Eyob94/shush-rs/pull/11) Breaking changes
+  - Rename `from_vec` to `from`
+
 ### 0.1.9 - 2024-09-13
 
 - [#13] (https://github.com/Eyob94/shush-rs/pull/11) Public interface
