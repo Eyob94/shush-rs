@@ -24,6 +24,9 @@ use std::ffi::c_void;
 #[cfg(unix)]
 use libc::{mlock, munlock, sysconf, _SC_PAGESIZE};
 
+#[cfg(windows)]
+use windows_sys::Win32::System::SystemInformation::{GetSystemInfo, SYSTEM_INFO};
+
 #[cfg(target_os = "linux")]
 use libc::{madvise, MADV_DODUMP, MADV_DONTDUMP};
 
@@ -31,11 +34,23 @@ pub use zeroize;
 pub use zeroize::{Zeroize, ZeroizeOnDrop};
 
 static mut PAGE_SIZE: LazyCell<i64> = LazyCell::new(|| {
-    let page_size = unsafe { sysconf(_SC_PAGESIZE) };
-    if page_size == -1 {
-        panic!("Error getting page size: \n {}", errno())
+    #[cfg(unix)]
+    {
+        let page_size = unsafe { sysconf(_SC_PAGESIZE) };
+        if page_size == -1 {
+            panic!("Error getting page size: \n {}", errno())
+        }
+        page_size
     }
-    page_size
+    #[cfg(windows)]
+    {
+        unsafe {
+            // Initialize SYSTEM_INFO using zeroed memory
+            let mut system_info: SYSTEM_INFO = std::mem::zeroed();
+            GetSystemInfo(&mut system_info);
+            system_info.dwPageSize as i64
+        }
+    }
 });
 
 /// Wrapper for the inner secret. Can be exposed by [`ExposeSecret`]
