@@ -9,11 +9,13 @@ use core::{
     fmt::{self, Debug},
 };
 use std::{
-    cell::LazyCell,
     fmt::Display,
     ops::{Deref, DerefMut},
 };
 use std::{mem::size_of_val, str::FromStr};
+
+#[cfg(unix)]
+use std::cell::LazyCell;
 
 #[cfg(unix)]
 use errno::errno;
@@ -30,12 +32,15 @@ use libc::{madvise, MADV_DODUMP, MADV_DONTDUMP};
 pub use zeroize;
 pub use zeroize::{Zeroize, ZeroizeOnDrop};
 
+#[cfg(unix)]
 static mut PAGE_SIZE: LazyCell<i64> = LazyCell::new(|| {
-    let page_size = unsafe { sysconf(_SC_PAGESIZE) };
-    if page_size == -1 {
-        panic!("Error getting page size: \n {}", errno())
+    {
+        let page_size = unsafe { sysconf(_SC_PAGESIZE) };
+        if page_size == -1 {
+            panic!("Error getting page size: \n {}", errno())
+        }
+        page_size
     }
-    page_size
 });
 
 /// Wrapper for the inner secret. Can be exposed by [`ExposeSecret`]
