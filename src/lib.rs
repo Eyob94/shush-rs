@@ -9,11 +9,13 @@ use core::{
     fmt::{self, Debug},
 };
 use std::{
-    cell::LazyCell,
     fmt::Display,
     ops::{Deref, DerefMut},
 };
 use std::{mem::size_of_val, str::FromStr};
+
+#[cfg(unix)]
+use std::cell::LazyCell;
 
 #[cfg(unix)]
 use errno::errno;
@@ -23,9 +25,6 @@ use std::ffi::c_void;
 
 #[cfg(unix)]
 use libc::{mlock, munlock, sysconf, _SC_PAGESIZE};
-
-#[cfg(windows)]
-use windows_sys::Win32::System::SystemInformation::{GetSystemInfo, SYSTEM_INFO};
 
 #[cfg(target_os = "linux")]
 use libc::{madvise, MADV_DODUMP, MADV_DONTDUMP};
@@ -41,19 +40,6 @@ static mut PAGE_SIZE: LazyCell<i64> = LazyCell::new(|| {
             panic!("Error getting page size: \n {}", errno())
         }
         page_size
-    }
-});
-
-#[allow(dead_code)]
-#[cfg(windows)]
-static mut PAGE_SIZE: LazyCell<i64> = LazyCell::new(|| {
-    {
-        unsafe {
-            // Initialize SYSTEM_INFO using zeroed memory
-            let mut system_info: SYSTEM_INFO = std::mem::zeroed();
-            GetSystemInfo(&mut system_info);
-            system_info.dwPageSize as i64
-        }
     }
 });
 
