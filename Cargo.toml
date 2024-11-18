@@ -1,6 +1,6 @@
 [package]
 name = "shush-rs"
-version = "0.1.10"
+version = "0.1.11"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A Rust crate designed to manage sensitive data securely by leveraging memory protection mechanisms."
