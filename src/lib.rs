@@ -101,9 +101,12 @@ impl<S: Zeroize> Drop for SecretBox<S> {
 
         #[cfg(windows)]
         unsafe {
-            if windows_sys::Win32::System::Memory::VirtualUnlock(secret_ptr.cast(), len) == 0 {
-                panic!("VirtualUnlock failed",);
-            }
+            // VirtualLock does not maintain a lock count for overlapping pages.
+            // Heap allocations commonly share pages, so dropping one SecretBox
+            // can unlock a page that still contains another SecretBox. A later
+            // VirtualUnlock then reports ERROR_NOT_LOCKED. Drop must still
+            // zeroize the secret and must never panic while unwinding.
+            let _ = windows_sys::Win32::System::Memory::VirtualUnlock(secret_ptr.cast(), len);
         }
 
         self.zeroize()
@@ -361,6 +364,16 @@ mod tests {
         // This requires checking the memory, which is not straightforward in Rust.
         // Here we rely on the zeroize trait to ensure it zeroizes.
         assert!(TestSecret::default().check_zero());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn dropping_multiple_secrets_does_not_panic() {
+        let secrets = (0..64)
+            .map(|index| SecretString::new(Box::new(format!("secret-{index}"))))
+            .collect::<Vec<_>>();
+
+        drop(secrets);
     }
 
     #[test]
